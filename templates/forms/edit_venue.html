@@ -118,7 +118,7 @@
       state.value = state.getAttribute('value');
       // setting genres value
       var genres = document.getElementById("genres");
-      let genres_values = genres.getAttribute('value').replace('{','').replace('}','').split(",")
+      let genres_values = genres.getAttribute('value').split(",")
         for ( var i = 0, length = genres.options.length, option; i < length; i++ )
         {
           option = genres.options[i];

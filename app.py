@@ -129,7 +129,6 @@ app.jinja_env.filters['datetime'] = format_datetime
 def index():
   return render_template('pages/home.html')
 
-
 #  Venues
 #  ----------------------------------------------------------------
 
@@ -184,7 +183,7 @@ def show_venue(venue_id):
   # shows the venue page with the given venue_id
   # TODO: replace with real venue data from the venues table, using venue_id
   data = Venue.query.get(venue_id)
-  data.genres = data.genres[1:-1].split(",")
+  data.genres = data.genres.split(",")
   now = datetime.now()
   # preparing past shows
   data.past_shows = []
@@ -230,10 +229,10 @@ def create_venue_submission():
       return render_template("forms/new_venue.html", form=form)
     name = form.name.data
     city = form.city.data
-    state = form.state.data
+    state = str(form.state.data)
     address = form.address.data
     phone = form.phone.data
-    genres = form.genres.data
+    genres = ",".join([choice.value for choice in form.genres.data])
     image_link = form.image_link.data
     facebook_link = form.facebook_link.data
     website = form.website.data
@@ -302,7 +301,7 @@ def show_artist(artist_id):
   # shows the venue page with the given venue_id
   # TODO: replace with real venue data from the venues table, using venue_id
   data = Artist.query.get(artist_id)
-  data.genres = data.genres[1:-1].split(",")
+  data.genres = data.genres.split(",")
   now = datetime.now()
   # preparing past shows
   data.past_shows = []
@@ -347,9 +346,9 @@ def edit_artist_submission(artist_id):
     artist = Artist.query.get(artist_id)
     artist.name = form.name.data
     artist.city = form.city.data
-    artist.state = form.state.data
+    artist.state = str(form.state.data)
     artist.phone = form.phone.data
-    artist.genres = form.genres.data
+    artist.genres = ",".join([choice.value for choice in form.genres.data])
     artist.image_link = form.image_link.data
     artist.facebook_link = form.facebook_link.data
     artist.website = form.website.data
@@ -383,10 +382,10 @@ def edit_venue_submission(venue_id):
     venue = Venue.query.get(venue_id)
     venue.name = form.name.data
     venue.city = form.city.data
-    venue.state = form.state.data
+    venue.state = str(form.state.data)
     venue.address = form.address.data
     venue.phone = form.phone.data
-    venue.genres = form.genres.data
+    venue.genres = ",".join([choice.value for choice in form.genres.data])
     venue.image_link = form.image_link.data
     venue.facebook_link = form.facebook_link.data
     venue.website = form.website.data
@@ -425,9 +424,9 @@ def create_artist_submission():
 
     name = form.name.data
     city = form.city.data
-    state = form.state.data
+    state = str(form.state.data)
     phone = form.phone.data
-    genres = form.genres.data
+    genres = ",".join([choice.value for choice in form.genres.data])
     image_link = form.image_link.data
     facebook_link = form.facebook_link.data
     website = form.website.data
