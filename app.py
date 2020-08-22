@@ -54,6 +54,7 @@ class Venue(db.Model):
       self.name = name.title()
       self.city = city
       self.state = state
+      self.address = address
       self.phone = phone
       self.genres = genres
       self.image_link = image_link
