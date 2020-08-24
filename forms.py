@@ -1,8 +1,9 @@
 from datetime import datetime
 from flask_wtf import Form
-from wtforms import StringField, SelectField, SelectMultipleField, DateTimeField, TextAreaField
+from wtforms import StringField, SelectField, SelectMultipleField, DateTimeField, TextAreaField, ValidationError
 from wtforms.validators import DataRequired, AnyOf, URL, Length
 from enum import Enum
+import re
 
 class StateEnum(Enum):
     AL = 'AL'
@@ -26,7 +27,7 @@ class StateEnum(Enum):
     LA = 'LA'
     ME = 'ME'
     MT = 'MT'
-    NE= 'NE'
+    NE = 'NE'
     NV = 'NV'
     NH = 'NH'
     NJ = 'NJ'
@@ -100,6 +101,10 @@ class GenresEnum(Enum):
     def __str__(self):
         return str(self.value)
 
+def validate_phone(form, field):
+        if not re.search(r"^[0-9]+-[0-9]+-[0-9]+$", field.data):
+            raise ValidationError("Invalid Phone number")
+
 class ShowForm(Form):
     artist_id = StringField(
         'artist_id', validators=[DataRequired()]
@@ -129,7 +134,7 @@ class VenueForm(Form):
         'address', validators=[DataRequired()]
     )
     phone = StringField(
-        'phone'
+        'phone', validators=[validate_phone]
     )
     image_link = StringField(
         'image_link', validators=[URL()]
@@ -167,7 +172,7 @@ class ArtistForm(Form):
     )
     phone = StringField(
         # TODO implement validation logic for state
-        'phone'
+        'phone', validators=[validate_phone]
     )
     image_link = StringField(
         'image_link', validators=[URL()]

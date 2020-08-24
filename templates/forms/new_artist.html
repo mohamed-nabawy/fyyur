@@ -61,7 +61,7 @@
               <p class="error-message">{{ error }}</p>
           {% endfor %}
         {% endif %}
-        {{ form.genres(class_ = 'form-control', placeholder='Genres, separated by commas', id='genres', autofocus = true) }}
+        {{ form.genres(class_ = 'form-control', placeholder='Genres, separated by commas', id='genres', autofocus = true, value=form.genres.data) }}
       </div>
       <div class="form-group">
         <label for="fb-link">Facebook Link</label>
@@ -103,4 +103,20 @@
       <input type="submit" value="Create Venue" class="btn btn-primary btn-lg btn-block">
     </form>
   </div>
+  <script>
+    // setting genres value
+    var genres = document.getElementById("genres");
+    let genres_values = genres.getAttribute('value').split(",")
+      for ( var i = 0, length = genres.options.length, option; i < length; i++ )
+      {
+        option = genres.options[i];
+        if ( genres_values.indexOf( option.value ) != -1 )
+        {
+          option.selected = true;
+        } else {
+          option.selected = false;
+        }
+      }
+</script>
 {% endblock %}
+
