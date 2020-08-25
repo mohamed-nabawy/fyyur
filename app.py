@@ -39,29 +39,32 @@ class Venue(db.Model):
     city = db.Column(db.String(120), nullable=False)
     state = db.Column(db.String(120), nullable=False)
     address = db.Column(db.String(120), nullable=False)
-    phone = db.Column(db.String(120))
-    image_link = db.Column(db.String(500))
-    facebook_link = db.Column(db.String(120))
+    image_link = db.Column(db.String(500), nullable=False)
+    facebook_link = db.Column(db.String(500), nullable=False)
     genres = db.Column(db.String(120), nullable=False)
-    website = db.Column(db.String(120))
     seeking_talent = db.Column(db.Boolean(), nullable=False)
-    seeking_description = db.Column(db.String(120))
+    website = db.Column(db.String(500), nullable=False)
     #one to many: venue has many shows
     shows = db.relationship('Show', backref='Venue', lazy='dynamic')
-    
+    _phone = db.relationship('VenuePhone', backref='Venue', lazy='dynamic')
+    _seeking_description = db.relationship('VenueSeekingDescription', backref='Venue', lazy='dynamic')
+    @property
+    def phone(self):
+       return self._phone.first().phone
+    @property
+    def seeking_description(self):
+       return self._seeking_description.first().seeking_description   
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
-    def __init__(self, name, city, state, address, phone, genres, image_link, facebook_link, website, seeking_talent, seeking_description):
+    def __init__(self, name, city, state, address, genres, image_link, facebook_link, seeking_talent, website):
       self.name = name.title()
       self.city = city
       self.state = state
       self.address = address
-      self.phone = phone
       self.genres = genres
       self.image_link = image_link
       self.facebook_link = facebook_link
-      self.website = website
       self.seeking_talent = seeking_talent
-      self.seeking_description = seeking_description
+      self.website = website
 
 class Artist(db.Model):
     __tablename__ = 'Artist'
@@ -70,27 +73,74 @@ class Artist(db.Model):
     name = db.Column(db.String, nullable=False)
     city = db.Column(db.String(120), nullable=False)
     state = db.Column(db.String(120), nullable=False)
-    phone = db.Column(db.String(120))
     genres = db.Column(db.String(120), nullable=False)
-    image_link = db.Column(db.String(500))
-    facebook_link = db.Column(db.String(120))
-    website = db.Column(db.String(120))
+    image_link = db.Column(db.String(500), nullable=False)
+    facebook_link = db.Column(db.String(500), nullable=False)
     seeking_venue = db.Column(db.Boolean(), nullable=False)
-    seeking_description = db.Column(db.String(120))
+    website = db.Column(db.String(500), nullable=False)
      # one to many: artist may have many shows
     shows = db.relationship('Show', backref='Artist', lazy='dynamic')
+    _phone = db.relationship('ArtistPhone', backref='Artist', lazy='dynamic')
+    @property
+    def phone(self):
+       return self._phone.first().phone
+
+    _seeking_description = db.relationship('ArtistSeekingDescription', backref='Artist', lazy='dynamic')
+    @property
+    def seeking_description(self):
+       return self._seeking_description.first().seeking_description
+       
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
-    def __init__(self, name, city, state, phone, genres, image_link, facebook_link, website, seeking_venue, seeking_description):
+    def __init__(self, name, city, state, genres, image_link, facebook_link, seeking_venue, website):
       self.name = name.title()
       self.city = city
       self.state = state
-      self.phone = phone
       self.genres = genres
       self.image_link = image_link
       self.facebook_link = facebook_link
-      self.website = website
       self.seeking_venue = seeking_venue
+      self.website = website
+
+class ArtistPhone(db.Model):
+    __tablename__ = 'artist_phone'
+
+    id = db.Column(db.Integer, primary_key=True)
+    artist_id = db.Column(db.Integer, db.ForeignKey('Artist.id'), nullable=False)
+    phone = db.Column(db.String(15), nullable=False)
+    def __init__(self, phone, artist_id):
+      self.artist_id = artist_id
+      self.phone = phone
+
+class ArtistSeekingDescription(db.Model):
+    __tablename__ = 'artist_seeking_description'
+
+    id = db.Column(db.Integer, primary_key=True)
+    artist_id = db.Column(db.Integer, db.ForeignKey('Artist.id'), nullable=False)
+    seeking_description = db.Column(db.String(120), nullable=False)
+    def __init__(self, seeking_description, artist_id):
+      self.artist_id = artist_id
       self.seeking_description = seeking_description
+
+class VenuePhone(db.Model):
+    __tablename__ = 'venue_phone'
+
+    id = db.Column(db.Integer, primary_key=True)
+    venue_id = db.Column(db.Integer, db.ForeignKey('Venue.id'), nullable=False)
+    phone = db.Column(db.String(15), nullable=False)
+    def __init__(self, phone, venue_id):
+      self.venue_id = venue_id
+      self.phone = phone
+
+class VenueSeekingDescription(db.Model):
+    __tablename__ = 'venue_seeking_description'
+
+    id = db.Column(db.Integer, primary_key=True)
+    venue_id = db.Column(db.Integer, db.ForeignKey('Venue.id'), nullable=False)
+    seeking_description = db.Column(db.String(120), nullable=False)
+    def __init__(self, seeking_description, venue_id):
+      self.venue_id = venue_id
+      self.seeking_description = seeking_description
+
 
 class Show(db.Model):
     __tablename__ = 'Show'
@@ -138,11 +188,12 @@ def venues():
   # TODO: replace with real venues data.
   #       num_shows should be aggregated based on number of upcoming shows per venue.
   venues = Venue.query.all()
-  #group venues by city and state
+  # group venues by city and state
   response = []
   cities_states = []
   now = datetime.now()
   for venue in venues:
+    # adding a num_upcoming_shows property to the each venue in the list
     venue.num_upcoming_shows = len(venue.shows.filter(Show.start_time > now).all())
     if((venue.city, venue.state) not in cities_states):
       cities_states.append((venue.city, venue.state))
@@ -250,8 +301,18 @@ def create_venue_submission():
     website = form.website.data
     seeking_talent = False if form.seeking_talent.data == "No" else True
     seeking_description = form.seeking_description.data
-    new_venue = Venue(name, city, state, address, phone, genres, image_link, facebook_link, website, seeking_talent, seeking_description)
+    new_venue = Venue(name, city, state, address, genres, image_link, facebook_link, seeking_talent, website)
     db.session.add(new_venue)
+    db.session.commit()
+    #adding phone if exists
+    if phone:
+      new_phone = VenuePhone(phone, new_venue.id)
+      db.session.add(new_phone)
+      #adding seeking description if exists
+    if seeking_description:
+      new_seeking_description = VenueSeekingDescription(seeking_description, new_venue.id)
+      db.session.add(new_seeking_description)
+
     db.session.commit()
     # on successful db insert, flash success
     flash('Venue ' + request.form['name'] + ' was successfully listed!')
@@ -270,8 +331,16 @@ def delete_venue(venue_id):
   # TODO: Complete this endpoint for taking a venue_id, and using
   # SQLAlchemy ORM to delete a record. Handle cases where the session commit could fail.
   try:
-    # ensure records are updated in Show table
+    #remove any rows in other tables that refrence this row i.e. show, venue_phone or venue_seeking_description
+    venue_phone = VenuePhone.query.filter_by(venue_id=venue_id)
+    db.session.delete(venue_phone)
+    venue_seeking_description = VenueSeekingDescription.query.filter_by(venue_id=venue_id)
+    show = Show.query.filter_by(venue_id=venue_id)
+    db.session.delete(venue_phone)
+    db.session.delete(venue_seeking_description)
+    db.session.delete(show)
     venue = Venue.query.get(venue_id)
+    #remove referencing tables rows first
     db.session.delete(venue)
     db.session.commit()
     flash('Venue was successfully deleted!')
@@ -282,7 +351,7 @@ def delete_venue(venue_id):
     db.session.close()
   # BONUS CHALLENGE: Implement a button to delete a Venue on a Venue Page, have it so that
   # clicking that button delete it from the db then redirect the user to the homepage
-  return redirect(url_for("/"))
+  return redirect(url_for("venues"))
 
 #  Artists
 #  ----------------------------------------------------------------
@@ -323,6 +392,7 @@ def show_artist(artist_id):
     if(data is None):
       flash('Artist does not exists!')
       return redirect(url_for("artists"))
+    # preparing genres for view
     data.genres = data.genres.split(",")
     now = datetime.now()
     # preparing past shows
@@ -345,7 +415,7 @@ def show_artist(artist_id):
       "venue_image_link":  show.venue.image_link,
       "start_time": show.start_time.strftime("%m/%d/%Y, %H:%M:%S")
       })
-    data.upcoming_shows_count =  len(data.upcoming_shows)
+    data.upcoming_shows_count = len(data.upcoming_shows)
     return render_template('pages/show_artist.html', artist=data)
   except:
     db.session.rollback()
@@ -360,6 +430,7 @@ def show_artist(artist_id):
 def edit_artist(artist_id):
   form = ArtistForm()
   artist = Artist.query.get(artist_id)
+  artist.seeking_description
   # TODO: populate form with fields from artist with ID <artist_id>
   return render_template('forms/edit_artist.html', form=form, artist=artist)
 
@@ -374,22 +445,38 @@ def edit_artist_submission(artist_id):
     artist.name = form.name.data
     artist.city = form.city.data
     artist.state = str(form.state.data)
-    artist.phone = form.phone.data
     artist.genres = ",".join([choice.value for choice in form.genres.data])
     artist.image_link = form.image_link.data
     artist.facebook_link = form.facebook_link.data
-    artist.website = form.website.data
     artist.seeking_venue = False if form.seeking_venue.data == "No" else True
-    artist.seeking_description = form.seeking_description.data
+    artist.website = form.website.data
 
     if form.validate() == False:
       return render_template("forms/edit_artist.html", form=form, artist=artist)
+    # check if form submission has a phone
+    if  form.phone.data:
+      old_phone = ArtistPhone.query.filter_by(artist_id =artist_id).first()
+    # check if artist has an old phone to update else create a new one
+      if old_phone:
+        db.session.query(ArtistPhone).filter_by(artist_id = artist_id).update({ArtistPhone.phone:form.phone.data})
+      else:
+        new_phone = ArtistPhone(form.phone.data, artist.id)
+        db.session.add(new_phone)
+    # check if form submission has a phone
+    if  form.seeking_description.data:
+      old_seeking_description = ArtistSeekingDescription.query.filter_by(artist_id =artist_id).first()
+    # check if artist has an old phone to update else create a new one
+      if old_seeking_description:
+        db.session.query(ArtistSeekingDescription).filter_by(artist_id = artist_id).update({ArtistSeekingDescription.seeking_description:form.seeking_description.data})
+      else:
+        new_seeking_description = ArtistSeekingDescription(form.seeking_description.data, artist.id)
+        db.session.add(new_seeking_description)
 
     db.session.commit()
     # on successful db insert, flash success
     flash('Artist ' + request.form['name'] + ' was successfully updated!')
   except:
-  # TODO: on unsuccessful db insert, flash an error instead.
+  # # TODO: on unsuccessful db insert, flash an error instead.
     db.session.rollback()
     flash('An error occurred. Artist ' + request.form['name'] + ' could not be updated.')
   finally:
@@ -414,16 +501,32 @@ def edit_venue_submission(venue_id):
     venue.city = form.city.data
     venue.state = str(form.state.data)
     venue.address = form.address.data
-    venue.phone = form.phone.data
     venue.genres = ",".join([choice.value for choice in form.genres.data])
     venue.image_link = form.image_link.data
     venue.facebook_link = form.facebook_link.data
-    venue.website = form.website.data
     venue.seeking_talent = False if form.seeking_talent.data == "No" else True
-    venue.seeking_description = form.seeking_description.data
+    venue.website = form.website.data
     # check form validation
     if form.validate() == False:
       return render_template("forms/edit_venue.html", form=form, venue=venue)
+      
+    if form.phone.data:
+      old_phone = VenuePhone.query.filter_by(venue_id = venue_id).first()
+      # check if artist has an old phone to update else create a new one
+      if old_phone:
+        db.session.query(VenuePhone).filter_by(venue_id = venue_id).update({VenuePhone.phone:form.phone.data})
+      else:
+        new_phone = VenuePhone(form.phone.data, venue.id)
+        db.session.add(new_phone)
+        
+    if form.seeking_description.data:
+      old_seeking_description = VenueSeekingDescription.query.filter_by(venue_id = venue_id).first()
+      # check if artist has an old seeking description to update else create a new one
+      if old_seeking_description:
+        db.session.query(VenueSeekingDescription).filter_by(venue_id = venue_id).update({VenueSeekingDescription.website:form.website.data})
+      else:
+        new_seeking_description = VenueSeekingDescription(form.seeking_description.data, venue.id)
+        db.session.add(new_seeking_description)
 
     db.session.commit()
     # on successful db insert, flash success
@@ -466,8 +569,15 @@ def create_artist_submission():
     website = form.website.data
     seeking_venue = False if form.seeking_venue.data == "No" else True
     seeking_description = form.seeking_description.data
-    new_artist = Artist(name, city, state, phone, genres, image_link, facebook_link, website, seeking_venue, seeking_description)
+    new_artist = Artist(name, city, state, genres, image_link, facebook_link, seeking_venue, website)
     db.session.add(new_artist)
+    db.session.commit()
+    if phone:
+      new_phone = ArtistPhone(phone, new_artist.id)
+      db.session.add(new_phone)
+    if seeking_description:
+      new_seeking_description = ArtistSeekingDescription(seeking_description, new_artist.id)
+      db.session.add(new_seeking_description)
     db.session.commit()
     # on successful db insert, flash success
     flash('Artist ' + request.form['name'] + ' was successfully listed!')
@@ -477,7 +587,7 @@ def create_artist_submission():
     flash('An error occurred. Artist ' + request.form['name'] + ' could not be listed.')
   finally:
     db.session.close()
-    return render_template('pages/home.html')
+    return redirect(url_for('artists'))
 
 #  Shows
 #  ----------------------------------------------------------------
@@ -485,6 +595,7 @@ def create_artist_submission():
 def shows():
   # displays list of shows at /shows
   # TODO: replace with real shows data.
+  # preparing real data shows for view
   shows = []
   data = Show.query.all()
   for show in data:
@@ -516,14 +627,15 @@ def create_show_submission():
     venue_id = form.venue_id.data
     start_time = form.start_time.data
     artist = Artist.query.get(artist_id)
-    if(artist is None):
+    #check if entities exists first for data integrity
+    if artist is None:
       flash('Artist does not exists!')
     venue = Venue.query.get(venue_id)
-    if(venue is None):
+    if venue is None:
       flash('Venue does not exists!')
     if(artist is None or venue is None):
       return render_template("forms/new_show.html", form=form)
-
+    
     new_show = Show(artist_id, venue_id, start_time)
     db.session.add(new_show)
     db.session.commit()

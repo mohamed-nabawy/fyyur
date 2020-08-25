@@ -1,6 +1,6 @@
 from datetime import datetime
 from flask_wtf import Form
-from wtforms import StringField, SelectField, SelectMultipleField, DateTimeField, TextAreaField, ValidationError
+from wtforms import StringField, SelectField, SelectMultipleField, DateTimeField, ValidationError
 from wtforms.validators import DataRequired, AnyOf, URL, Length
 from enum import Enum
 import re
@@ -102,6 +102,9 @@ class GenresEnum(Enum):
         return str(self.value)
 
 def validate_phone(form, field):
+        if not field.data:
+            return
+
         if not re.search(r"^[0-9]+-[0-9]+-[0-9]+$", field.data):
             raise ValidationError("Invalid Phone number")
 
@@ -134,10 +137,10 @@ class VenueForm(Form):
         'address', validators=[DataRequired()]
     )
     phone = StringField(
-        'phone', validators=[validate_phone]
+        'phone', validators=[validate_phone, Length(max=15, message="must be lower than 15 chars")]
     )
     image_link = StringField(
-        'image_link', validators=[URL()]
+        'image_link', validators=[URL(), Length(max=500, message="must be lower than 500 chars")]
     )
     genres = SelectMultipleField(
         # TODO implement enum restriction
@@ -146,15 +149,15 @@ class VenueForm(Form):
         coerce=GenresEnum.coerce
     )
     facebook_link = StringField(
-        'facebook_link', validators=[URL()]
+        'facebook_link', validators=[URL(), Length(max=500, message="must be lower than 500 chars")]
     )
     website = StringField(
-        'website', validators=[URL()]
+        'website', validators=[URL(), Length(max=500, message="must be lower than 500 chars")]
     )
     seeking_talent = SelectField(
         'seeking_talent', choices=[('No', 'No'), ('Yes', 'Yes')]
     )
-    seeking_description = TextAreaField(
+    seeking_description = StringField(
         'seeking_description', validators=[Length(max=120, message="must be lower than 120 chars")]
     )
 
@@ -172,10 +175,10 @@ class ArtistForm(Form):
     )
     phone = StringField(
         # TODO implement validation logic for state
-        'phone', validators=[validate_phone]
+        'phone', validators=[validate_phone, Length(max=15, message="must be lower than 15 chars")]
     )
     image_link = StringField(
-        'image_link', validators=[URL()]
+        'image_link', validators=[URL(), Length(max=500, message="must be lower than 500 chars")]
     )
     genres = SelectMultipleField(
         # TODO implement enum restriction
@@ -184,15 +187,15 @@ class ArtistForm(Form):
         coerce=GenresEnum.coerce
     )
     facebook_link = StringField(
-        'facebook_link', validators=[URL()]
+        'facebook_link', validators=[URL(), Length(max=500, message="must be lower than 500 chars")]
     )
     website = StringField(
-        'website', validators=[URL()]
+        'website', validators=[URL(), Length(max=500, message="must be lower than 500 chars")]
     )
     seeking_venue = SelectField(
         'seeking_venue', choices=[('No', 'No'), ('Yes', 'Yes')]
     )
-    seeking_description = TextAreaField(
+    seeking_description = StringField(
         'seeking_description', validators=[Length(max=120, message="must be lower than 120 chars")]
     )
 
